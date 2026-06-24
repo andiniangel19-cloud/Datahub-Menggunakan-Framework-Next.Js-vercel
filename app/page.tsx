@@ -13,10 +13,9 @@ export default function CombinedDataHub() {
 
   const datasetInputRef = useRef<HTMLInputElement>(null);
   const datasetFolderInputRef = useRef<HTMLInputElement>(null);
-  const codeInputRef = useRef<HTMLInputElement>(null);
   const codeFolderInputRef = useRef<HTMLInputElement>(null);
 
-  // Trik untuk Vercel Build (Inject atribut agar tidak error TypeScript)
+  // Trik Vercel Build: Inject atribut folder saat aplikasi sudah berjalan (Client-side)
   useEffect(() => {
     [datasetFolderInputRef, codeFolderInputRef].forEach(ref => {
       if (ref.current) {
@@ -27,11 +26,7 @@ export default function CombinedDataHub() {
   }, []);
 
   const [datasets, setDatasets] = useState([
-    { 
-      id: 1, title: "Customer Segmentation Dataset", size: "12.5 MB", type: "CSV", downloads: "2.3k",
-      headers: ["ID", "Age", "Annual Income", "Spending Score"],
-      rows: [["1", "24", "$45,000", "78"], ["2", "32", "$80,000", "45"]]
-    }
+    { id: 1, title: "Customer Segmentation Dataset", size: "12.5 MB", type: "CSV", downloads: "2.3k", headers: ["ID", "Age"], rows: [["1", "24"]] }
   ]);
 
   const [codes, setCodes] = useState([
@@ -48,10 +43,10 @@ export default function CombinedDataHub() {
       reader.onload = (ev) => {
         const text = (ev.target?.result as string) || "";
         const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim() !== '');
-        const separator = lines[0]?.includes(';') ? ';' : ',';
+        const sep = lines[0]?.includes(';') ? ';' : ',';
         setDatasets(prev => [{
           id: Date.now(), title: file.name, size: (file.size/1024/1024).toFixed(2)+" MB", type: "CSV", downloads: "0",
-          headers: lines[0]?.split(separator) || ["Data"], rows: lines.slice(1, 6).map(l => l.split(separator))
+          headers: lines[0]?.split(sep) || ["Data"], rows: lines.slice(1, 6).map(l => l.split(sep))
         }, ...prev]);
       };
       reader.readAsText(file);
@@ -61,20 +56,10 @@ export default function CombinedDataHub() {
   const handleDatasetFolderChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       setDatasets(prev => [{
-        id: Date.now(), title: `📁 ${e.target.files![0].webkitRelativePath.split("/")[0]}`, size: "Multi", type: "DIR", downloads: "0",
+        id: Date.now(), title: `📁 ${e.target.files![0].webkitRelativePath.split("/")[0]}`, size: "Multiple", type: "DIR", downloads: "0",
         headers: ["Status"], rows: [["Berisi " + e.target.files!.length + " file."]]
       }, ...prev]);
     }
-  };
-
-  const handleGithubSubmit = () => {
-    if (!githubLink.includes("github.com")) return alert("Link GitHub tidak valid!");
-    const parts = githubLink.split("/").filter(Boolean);
-    setCodes(prev => [{
-      id: Date.now(), title: `${parts[parts.length-2] || "user"} / ${parts[parts.length-1]}`,
-      author: isLoggedIn ? `@${currentUser}` : "@user", time: "Just now", link: githubLink
-    }, ...prev]);
-    setGithubLink("");
   };
 
   return (
@@ -94,7 +79,6 @@ export default function CombinedDataHub() {
               <h1 className="text-3xl font-bold">Datasets</h1>
               <div className="flex gap-2">
                 <input type="file" ref={datasetInputRef} onChange={handleDatasetFileChange} className="hidden" />
-                {/* Atribut webkitdirectory disuntikkan via useEffect di atas */}
                 <input type="file" ref={datasetFolderInputRef} onChange={handleDatasetFolderChange} className="hidden" multiple />
                 <button onClick={() => datasetInputRef.current?.click()} className="border px-4 py-2 rounded-lg">+ File</button>
                 <button onClick={() => datasetFolderInputRef.current?.click()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">📁 Folder</button>
@@ -103,13 +87,14 @@ export default function CombinedDataHub() {
             {filteredDatasets.map(d => (
               <div key={d.id} className="p-5 border rounded-xl flex justify-between mb-4">
                 <h3 className="font-bold">{d.title}</h3>
-                <button onClick={() => setActiveModal({ type: "data", title: d.title, content: d })} className="border px-4 py-2 rounded-lg">View</button>
+                <button onClick={() => setActiveModal({ type: "data", title: d.title, content: d })} className="border px-4 py-2 rounded-lg">View Data</button>
               </div>
             ))}
           </div>
         )}
-        {/* Tambahkan kondisi untuk currentView "code" dan "home" ... */}
       </main>
+
+      {/* Modal Preview Tetap Sama... */}
     </div>
   );
 }
